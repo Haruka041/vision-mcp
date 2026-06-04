@@ -23,7 +23,9 @@ app.add_middleware(
 )
 
 # Mount the MCP SSE Starlette app onto FastAPI
-app.mount("/mcp", mcp.sse_app(mount_path="/mcp"))
+# Do NOT pass mount_path to sse_app() — FastAPI's Mount sets root_path automatically,
+# which SseServerTransport uses to construct the correct message endpoint URL.
+app.mount("/mcp", mcp.sse_app())
 
 
 def get_db():
