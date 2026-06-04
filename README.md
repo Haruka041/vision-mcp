@@ -17,14 +17,35 @@
 ## 🛠 编译与运行指南
 
 ### 1. 本地手动构建与启动
+
+#### 方法一：使用 Docker Compose（推荐 🌟）
+在项目根目录下，直接使用 Docker Compose 启动双引擎服务：
+```bash
+docker compose up -d
+```
+这将在后台启动服务，自动映射 `8080` 端口并创建本地的 `mcp_data` 文件夹用于存储 SQLite 数据库。
+
+#### 方法二：使用原生 Docker 命令
 在项目根目录下执行以下命令构建 Docker 镜像：
 ```bash
 docker build -t mcp-vision-server .
 ```
+启动 Web 服务和数据库持久化：
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v ./mcp_data:/data \
+  --name mcp-vision \
+  --restart always \
+  mcp-vision-server
+```
 
-#### A. 供 MCP 客户端直接调用（推荐，双引擎运行）
-在 OpenCode 或 Claude Desktop 客户端配置文件（如 `claude_desktop_config.json`）中添加该 MCP 服务。**必须指定 `-i`（交互模式）以及挂载持久化数据库目录**：
+### 2. 客户端配置集成 (OpenCode / Claude Desktop)
 
+根据你的容器运行位置，你可以选择以下两种方式之一集成到你的客户端中：
+
+#### 方式一：容器运行在本地（通过 Docker 直接桥接）
+在客户端配置文件中直接配置启动 Docker 容器进行 stdio 通信。配置示例如下：
 ```json
 {
   "mcpServers": {
@@ -42,17 +63,26 @@ docker build -t mcp-vision-server .
   }
 }
 ```
-*注：请将 `F:/MCP/mcp_data` 替换为您本地用于存放数据库的真实绝对路径。*
+*注：请将 `F:/MCP/mcp_data` 替换为你本地真实的数据库挂载绝对路径。且必须使用 `-i`（交互式）参数。*
 
-#### B. 独立运行 Web 调试模式
-如果您仅需要启动 Web 管理后台测试：
-```bash
-docker run -d \
-  -p 8080:8080 \
-  -v ./mcp_data:/data \
-  --name mcp-vision \
-  mcp-vision-server
+#### 方式二：容器部署在远程服务器（通过 SSH 管道连接，推荐 🌟）
+如果你的 Docker 容器部署在云服务器上，为了避免在公网暴露无鉴权的 MCP 端口，你可以通过安全 SSH 管道在本地调用远程容器服务。
+在本地客户端配置文件中写入如下配置（需要本地已配置免密 SSH 登录到服务器）：
+```json
+{
+  "mcpServers": {
+    "mcp-vision-server": {
+      "command": "ssh",
+      "args": [
+        "-T",
+        "root@<你的服务器IP>",
+        "docker exec -i mcp-vision python mcp_vision_server.py"
+      ]
+    }
+  }
+}
 ```
+通过该方式，本地 OpenCode 启动时将自动通过 SSH 加密通道连接至服务器并运行 `docker exec` 与容器进行通信，安全且方便。
 
 ---
 

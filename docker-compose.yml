@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  mcp-vision:
+    # 本地开发可以直接通过 build 构建，生产环境也可以替换为 GHCR 镜像：
+    # image: ghcr.io/haruka041/vision-mcp:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mcp-vision-server:latest
+    container_name: mcp-vision
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./mcp_data:/data
+    restart: always
