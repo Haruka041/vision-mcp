@@ -2,6 +2,7 @@ import subprocess
 import sys
 import signal
 import atexit
+import time
 
 web = None
 
@@ -38,9 +39,21 @@ def main():
         stderr=sys.stderr
     )
 
+    start_time = time.time()
     try:
         run()
-    finally:
+    except Exception as e:
+        sys.stderr.write(f"MCP server exited: {e}\n")
+
+    elapsed = time.time() - start_time
+    if elapsed < 3.0:
+        sys.stderr.write("MCP server exited immediately (likely running in detached/daemon mode). Keeping container alive for Web UI...\n")
+        if web.poll() is None:
+            try:
+                web.wait()
+            except KeyboardInterrupt:
+                cleanup()
+    else:
         cleanup()
 
 
