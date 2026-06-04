@@ -1,12 +1,29 @@
 from fastapi import FastAPI, Query
 from fastapi.responses import HTMLResponse
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import sqlite3
 from pathlib import Path
+from mcp_vision_server import mcp
+
+# Disable DNS rebinding protection for internal network SSE support
+mcp.settings.transport_security.enable_dns_rebinding_protection = False
 
 DB_PATH = Path("/data/mcp_management.db")
 
 app = FastAPI(title="MCP Vision Manager")
+
+# Enable CORS for maximum compatibility (e.g. browser clients, external tools)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Mount the MCP SSE Starlette app onto FastAPI
+app.mount("/mcp", mcp.sse_app(mount_path="/mcp"))
 
 
 def get_db():
